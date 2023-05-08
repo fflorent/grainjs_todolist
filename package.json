@@ -1,0 +1,20 @@
+{
+  "name": "grainjs-todolist",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "grainjs": "^1.0.2"
+  },
+  "devDependencies": {
+    "html-webpack-plugin": "^5.5.1",
+    "prettier": "^2.8.8",
+    "webpack": "^5.82.0",
+    "webpack-cli": "^5.1.0"
+  }
+}
