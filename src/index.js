@@ -1,6 +1,10 @@
-const { dom, obsArray, styled, observable } = require("grainjs");
+const { dom, styled, observable, subscribe } = require("grainjs");
+const { makeInitialTasks, serializeTasks } = require("./models/tasks");
 
-const tasks = obsArray([]);
+const tasks = makeInitialTasks(localStorage.tasks || "[]");
+const persistTasks = (tasksToSerialize) => {
+  localStorage.tasks = serializeTasks(tasksToSerialize);
+};
 
 const todoList = styled(
   "ul",
@@ -15,6 +19,8 @@ const trash = styled(
     margin-left: 2em;
   `
 );
+
+subscribe(tasks, (_, tasksToSerialize) => persistTasks(tasksToSerialize));
 
 dom.update(
   document.body,
@@ -56,27 +62,29 @@ dom.update(
         const inputId = "task-" + i;
         return dom(
           "li",
-          dom.cls("is-done", (use) => use(task).done),
           dom.cls("todo-list-item"),
           dom(
             "input",
-            { id: inputId, type: "checkbox" },
+            { id: inputId, type: "checkbox", checked: task.get().done },
             dom.on("change", (ev) => {
               task.set({
                 ...task.get(),
                 done: ev.target.checked,
               });
+              persistTasks(tasks.get());
             })
           ),
           dom(
             "label",
             dom.cls("spacer"),
+            dom.cls("is-done", (use) => use(task).done),
             { for: inputId },
             dom.text((use) => use(task).name)
           ),
           trash(
             dom.on("click", () => {
               if (!task.get().done) {
+                // FIXME rather use a toast
                 return alert("First mark this task as done");
               }
               tasks.splice(tasks.get().indexOf(task), 1);
