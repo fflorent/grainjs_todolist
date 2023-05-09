@@ -3569,6 +3569,206 @@ function select(obs, optionArray, options = {}) {
 
 /***/ }),
 
+/***/ "./src/components/filters.js":
+/*!***********************************!*\
+  !*** ./src/components/filters.js ***!
+  \***********************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+const { dom } = __webpack_require__(/*! grainjs */ "./node_modules/grainjs/dist/esm/index.js");
+const { FilterModel } = __webpack_require__(/*! ../models/filter */ "./src/models/filter.js");
+
+module.exports = (filterModel) => {
+  const filterRadio = (props) =>
+    dom(
+      "input",
+      {
+        type: "radio",
+        name: "filter",
+        checked: filterModel.observable.get() === props.value,
+        ...props,
+      },
+      dom.on("change", (ev) => filterModel.observable.set(ev.target.value))
+    );
+
+  return dom(
+    "p",
+    "filter: ",
+    filterRadio({ value: FilterModel.VALUES.ALL, id: "filter_all" }),
+    dom("label", { for: "filter_all" }, "show all"),
+    ", ",
+    filterRadio({ value: FilterModel.VALUES.DONE, id: "filter_done" }),
+    dom("label", { for: "filter_done" }, "show done"),
+    ", ",
+    filterRadio({ value: FilterModel.VALUES.UNDONE, id: "filter_undone" }),
+    dom("label", { for: "filter_undone" }, "show undone")
+  );
+};
+
+
+/***/ }),
+
+/***/ "./src/components/form.js":
+/*!********************************!*\
+  !*** ./src/components/form.js ***!
+  \********************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+const { dom, observable } = __webpack_require__(/*! grainjs */ "./node_modules/grainjs/dist/esm/index.js");
+
+module.exports = (tasks) =>
+  dom(
+    "form",
+    dom(
+      "label",
+      {
+        for: "task-input",
+      },
+      "Enter your task: "
+    ),
+    dom("input", {
+      type: "text",
+      name: "task",
+      id: "task-input",
+      placeholder: "Wash my dishes",
+      autofocus: true,
+      style: "margin: 0 0.5em",
+    }),
+    dom("input", { type: "submit", value: "validate" }),
+    dom.on("submit", (ev) => {
+      const taskEl = ev.target.elements.task;
+      tasks.push(
+        observable({
+          name: taskEl.value,
+          done: false,
+        })
+      );
+      taskEl.value = "";
+      ev.preventDefault();
+    })
+  );
+
+
+/***/ }),
+
+/***/ "./src/components/index.js":
+/*!*********************************!*\
+  !*** ./src/components/index.js ***!
+  \*********************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+const list = __webpack_require__(/*! ./list */ "./src/components/list.js");
+const form = __webpack_require__(/*! ./form */ "./src/components/form.js");
+const filters = __webpack_require__(/*! ./filters */ "./src/components/filters.js");
+
+module.exports = { form, list, filters };
+
+
+/***/ }),
+
+/***/ "./src/components/list.js":
+/*!********************************!*\
+  !*** ./src/components/list.js ***!
+  \********************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+const { dom, styled } = __webpack_require__(/*! grainjs */ "./node_modules/grainjs/dist/esm/index.js");
+
+const todoList = styled(
+  "ul",
+  `
+  list-style-type: none;
+`
+);
+
+const trash = styled(
+  "button",
+  `
+    margin-left: 2em;
+  `
+);
+
+// FIXME: Can do better than passing persistTasks?
+module.exports = (tasks, { filterModel, persistTasks }) =>
+  todoList(
+    dom.forEach(tasks, (task, i) => {
+      const inputId = "task-" + i;
+      return dom(
+        "li",
+        dom.cls("todo-list-item"),
+        dom.show((use) => {
+          return filterModel.showTask(
+            use(filterModel.observable),
+            use(task).done
+          );
+        }),
+        dom(
+          "input",
+          { id: inputId, type: "checkbox", checked: task.get().done },
+          dom.on("change", (ev) => {
+            task.set({
+              ...task.get(),
+              done: ev.target.checked,
+            });
+            persistTasks(tasks.get());
+          })
+        ),
+        dom(
+          "label",
+          dom.cls("spacer"),
+          dom.cls("is-done", (use) => use(task).done),
+          { for: inputId },
+          dom.text((use) => use(task).name)
+        ),
+        trash(
+          dom.on("click", () => {
+            if (!task.get().done) {
+              // FIXME rather use a toast
+              return alert("First mark this task as done");
+            }
+            tasks.splice(tasks.get().indexOf(task), 1);
+          }),
+          dom.text("🗑")
+        )
+      );
+    })
+  );
+
+
+/***/ }),
+
+/***/ "./src/models/filter.js":
+/*!******************************!*\
+  !*** ./src/models/filter.js ***!
+  \******************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+const { observable } = __webpack_require__(/*! grainjs */ "./node_modules/grainjs/dist/esm/index.js");
+
+class FilterModel {
+  static VALUES = { ALL: "all", DONE: "done", UNDONE: "undone" };
+  constructor(initialValue = "all") {
+    this.observable = observable(initialValue);
+  }
+  showTask(filterVal, taskDone) {
+    switch (filterVal) {
+      case "all":
+        return true;
+      case "done":
+        return taskDone;
+      case "undone":
+        return !taskDone;
+    }
+  }
+}
+
+module.exports = {
+  FilterModel,
+};
+
+
+/***/ }),
+
 /***/ "./src/models/tasks.js":
 /*!*****************************!*\
   !*** ./src/models/tasks.js ***!
@@ -3651,7 +3851,9 @@ var __webpack_exports__ = {};
 /*!**********************!*\
   !*** ./src/index.js ***!
   \**********************/
-const { dom, styled, observable, subscribe } = __webpack_require__(/*! grainjs */ "./node_modules/grainjs/dist/esm/index.js");
+const { dom, subscribe, styled, observable, Observable } = __webpack_require__(/*! grainjs */ "./node_modules/grainjs/dist/esm/index.js");
+const { form, list, filters } = __webpack_require__(/*! ./components */ "./src/components/index.js");
+const { FilterModel } = __webpack_require__(/*! ./models/filter */ "./src/models/filter.js");
 const { makeInitialTasks, serializeTasks } = __webpack_require__(/*! ./models/tasks */ "./src/models/tasks.js");
 
 const tasks = makeInitialTasks(localStorage.tasks || "[]");
@@ -3659,94 +3861,22 @@ const persistTasks = (tasksToSerialize) => {
   localStorage.tasks = serializeTasks(tasksToSerialize);
 };
 
-const todoList = styled(
-  "ul",
-  `
-  list-style-type: none;
-`
-);
-
-const trash = styled(
-  "button",
-  `
-    margin-left: 2em;
-  `
-);
-
 subscribe(tasks, (_, tasksToSerialize) => persistTasks(tasksToSerialize));
+
+const filterModel = new FilterModel(localStorage.filter);
+subscribe(filterModel.observable, (_, val) => {
+  localStorage.filter = val;
+});
 
 dom.update(
   document.body,
-  dom("header", dom.cls("center"), dom("h1", "TODO List avec Grainjs")),
+  dom("header", dom.cls("center"), dom("h1", "TODO List with Grainjs")),
   dom(
     "main",
     dom.cls("center"),
-    dom(
-      "form",
-      dom(
-        "label",
-        {
-          for: "task-input",
-        },
-        "Enter your task: "
-      ),
-      dom("input", {
-        type: "text",
-        name: "task",
-        id: "task-input",
-        placeholder: "Wash my dishes",
-        autofocus: true,
-      }),
-      dom("input", { type: "submit", value: "validate" }),
-      dom.on("submit", (ev) => {
-        const taskEl = ev.target.elements.task;
-        tasks.push(
-          observable({
-            name: taskEl.value,
-            done: false,
-          })
-        );
-        taskEl.value = "";
-        ev.preventDefault();
-      })
-    ),
-    todoList(
-      dom.forEach(tasks, (task, i) => {
-        const inputId = "task-" + i;
-        return dom(
-          "li",
-          dom.cls("todo-list-item"),
-          dom(
-            "input",
-            { id: inputId, type: "checkbox", checked: task.get().done },
-            dom.on("change", (ev) => {
-              task.set({
-                ...task.get(),
-                done: ev.target.checked,
-              });
-              persistTasks(tasks.get());
-            })
-          ),
-          dom(
-            "label",
-            dom.cls("spacer"),
-            dom.cls("is-done", (use) => use(task).done),
-            { for: inputId },
-            dom.text((use) => use(task).name)
-          ),
-          trash(
-            dom.on("click", () => {
-              if (!task.get().done) {
-                // FIXME rather use a toast
-                return alert("First mark this task as done");
-              }
-              tasks.splice(tasks.get().indexOf(task), 1);
-            }),
-            dom.text("🗑")
-          )
-        );
-      })
-    )
+    form(tasks),
+    filters(filterModel),
+    list(tasks, { filterModel, persistTasks })
   )
 );
 

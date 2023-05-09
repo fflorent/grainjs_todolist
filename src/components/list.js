@@ -14,13 +14,20 @@ const trash = styled(
   `
 );
 
-module.exports = (tasks) =>
+// FIXME: Can do better than passing persistTasks?
+module.exports = (tasks, { filterModel, persistTasks }) =>
   todoList(
     dom.forEach(tasks, (task, i) => {
       const inputId = "task-" + i;
       return dom(
         "li",
         dom.cls("todo-list-item"),
+        dom.show((use) => {
+          return filterModel.showTask(
+            use(filterModel.observable),
+            use(task).done
+          );
+        }),
         dom(
           "input",
           { id: inputId, type: "checkbox", checked: task.get().done },
