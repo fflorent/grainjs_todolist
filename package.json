@@ -4,6 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "build:dev": "webpack-cli --config ./dev.config.js",
+    "build:watch": "webpack-cli --config ./dev.config.js --watch",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
